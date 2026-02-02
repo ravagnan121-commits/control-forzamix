@@ -2,71 +2,93 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Forzamix - Control Profesional</title>
+    <title>Forzamix - Sistema de Control Industrial</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --azul: #1a252f; --celeste: #3498db; --verde: #27ae60; --rojo: #c0392b; --fondo: #f8f9fa; }
+        :root { --azul: #1a252f; --celeste: #3498db; --verde: #27ae60; --rojo: #c0392b; --fondo: #f8f9fa; --gris: #7f8c8d; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--fondo); display: flex; justify-content: center; padding: 20px; }
-        .container { background: white; width: 900px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-top: 8px solid var(--azul); }
-        .seccion { background: #ffffff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dee2e6; }
-        .db-loader { background: #fff9db; border: 2px dashed #f1c40f; padding: 10px; text-align: center; margin-bottom: 20px; }
-        label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 12px; }
-        input { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
-        .grid-superior { display: grid; grid-template-columns: 3fr 1fr; gap: 15px; margin-bottom: 15px; }
-        .grid-datos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        #qrcode { background: white; padding: 10px; border: 1px solid #ddd; margin-top: 10px; display: inline-block; }
-        .btn { padding: 15px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; margin-top: 5px; }
-        #monitor { background: #212529; color: #33ff33; padding: 15px; border-radius: 6px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; margin: 15px 0; }
-        .jornada-box { background: #e9ecef; padding: 20px; border-radius: 10px; }
+        .container { background: white; width: 950px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-top: 8px solid var(--azul); }
+        .seccion { background: #ffffff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6; }
+        .db-loader { background: #fff9db; border: 2px dashed #f1c40f; padding: 10px; text-align: center; margin-bottom: 15px; border-radius: 8px; }
+        label { display: block; font-weight: 700; margin-bottom: 4px; font-size: 11px; color: var(--azul); }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; font-size: 13px; }
+        .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .grid-datos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .paso { flex: 1; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; text-align: center; font-weight: bold; color: #adb5bd; transition: 0.3s; }
+        .activo { border-color: var(--verde); color: var(--verde); background: #f1fcf4; }
+        .en-proceso { border-color: var(--celeste); color: var(--celeste); background: #ebf5fb; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .btn { padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; width: 100%; font-size: 13px; transition: 0.3s; }
+        #monitor { background: #212529; color: #33ff33; padding: 12px; border-radius: 6px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 11px; margin: 10px 0; border: 1px solid #000; }
+        #timerDisplay { font-weight:bold; color:var(--rojo); font-size:28px; margin: 10px 0; }
+        .stats-box { background: #e9ecef; padding: 20px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align:center; color:var(--azul)">FORZAMIX S.R.L.</h2>
+    <h2 style="text-align:center; color:var(--azul); margin-bottom:0;">FORZAMIX S.R.L.</h2>
+    <p style="text-align:center; font-size:12px; color:var(--gris); margin-bottom:20px;">PLANTILLA DE CONTROL - ESTABLECIMIENTO 9309</p>
     
     <div class="db-loader">
-        <label>1. CARGAR ARTICULOS (CSV):</label>
+        <label>1. CARGAR BASE DE DATOS (Articulos.csv):</label>
         <input type="file" id="fileInput" accept=".csv" onchange="cargarCSV(this)">
-        <p id="statusDB" style="font-size:11px;">⚠️ Cargue su archivo de artículos para empezar.</p>
     </div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+    <div class="grid-main">
         <div class="seccion">
-            <div class="grid-superior">
+            <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 10px;">
                 <div>
                     <label>PRODUCTO:</label>
                     <input list="listaProductos" id="inputProducto" onchange="vincularCodigo()">
                     <datalist id="listaProductos"></datalist>
                 </div>
-                <div><label>Cod:</label><input type="text" id="codigoProd" readonly style="background:#f1f3f5"></div>
+                <div><label>Código:</label><input type="text" id="codigoProd" readonly style="background:#f1f3f5"></div>
             </div>
+
             <div class="grid-datos">
                 <div><label>Orden (OP):</label><input type="text" id="orden"></div>
                 <div><label>N° Lote:</label><input type="text" id="lote"></div>
-                <div><label>Peso (Kg):</label><input type="number" id="pesoBatch"></div>
+                <div>
+                    <label>Mezcladora:</label>
+                    <select id="mezcladoraId">
+                        <option value="300">Mezcladora 1 (300 kg)</option>
+                        <option value="30">Mezcladora 2 (30 kg)</option>
+                        <option value="500">Mezcladora 3 (500 kg)</option>
+                        <option value="500">Mezcladora 4 (500 kg)</option>
+                        <option value="750">Mezcladora 5 (750 kg)</option>
+                        <option value="500">Mezcladora 6 (500 kg)</option>
+                    </select>
+                </div>
             </div>
-            <button id="btnLote" class="btn" style="background:var(--celeste); margin-top:15px" onclick="iniciarLote()">PROCESAR Y GENERAR QR</button>
+
+            <div style="margin-top:10px; display: grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>Peso del Batch (Kg):</label><input type="number" id="pesoBatch"></div>
+                <div><label>Observaciones:</label><input type="text" id="obs"></div>
+            </div>
+
+            <button id="btnLote" class="btn" style="background:var(--celeste); margin-top:15px" onclick="validarEIniciar()">REGISTRAR Y MEZCLAR (3 MIN)</button>
         </div>
 
-        <div class="seccion" style="text-align:center">
-            <label>QR IDENTIFICADOR:</label>
-            <div id="qrcode"></div>
-            <p id="qr-info" style="font-size:10px; color:#666; margin-top:10px">Esperando registro...</p>
+        <div class="seccion" style="text-align:center; display: flex; flex-direction: column; justify-content: center;">
+            <label>QR IDENTIFICADOR</label>
+            <div id="qrcode" style="margin: 10px auto;"></div>
+            <div id="timerDisplay">03:00</div>
+            <p id="qr-info" style="font-size:10px; color:var(--gris);">Validación Pendiente</p>
         </div>
     </div>
 
-    <div id="monitor">Sistema con autoguardado activo.</div>
+    <div id="monitor">Consola del sistema Forzamix lista...</div>
 
-    <div class="jornada-box">
-        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:15px;">
-            <span id="txtCant">BATCHES HOY: 0</span>
-            <span id="txtPeso">PESO TOTAL: 0 kg</span>
+    <div class="stats-box">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:var(--azul);">
+            <span id="txtCant">BATCHES REGISTRADOS: 0</span>
+            <span id="txtPeso">TOTAL PRODUCIDO: 0 kg</span>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-            <button class="btn" style="background:var(--azul)" onclick="descargarReporte()">⬇ REPORTE TXT</button>
-            <button class="btn" style="background:var(--verde)" onclick="enviarEmail()">📧 ENVIAR MAIL</button>
-            <button class="btn" style="background:var(--rojo)" onclick="limpiarMemoria()">♻ NUEVA JORNADA</button>
+            <button class="btn" style="background:var(--azul)" onclick="descargarReporte()">⬇ GUARDAR EN DISCO (.TXT)</button>
+            <button class="btn" style="background:var(--verde)" onclick="enviarEmail()">📧 ENVIAR POR EMAIL</button>
+            <button class="btn" style="background:var(--rojo)" onclick="confirm('¿Desea borrar la memoria del día?') && (localStorage.removeItem('historialForzamix'), location.reload())">♻ RESET JORNADA</button>
         </div>
     </div>
 </div>
@@ -74,31 +96,25 @@
 <script>
     let productosDB = [];
     let historial = JSON.parse(localStorage.getItem('historialForzamix')) || [];
-    let qrGenerator = new QRCode(document.getElementById("qrcode"), { width: 140, height: 140 });
+    let qrGenerator = new QRCode(document.getElementById("qrcode"), { width: 130, height: 130 });
 
-    // Al cargar la página, recuperar datos previos
-    window.onload = () => {
-        actualizarInterfaz();
-        log("Memoria recuperada: " + historial.length + " baches encontrados.");
-    };
+    window.onload = () => { actualizarStats(); };
 
     function cargarCSV(input) {
-        const file = input.files[0];
         const reader = new FileReader();
         reader.onload = (e) => {
             const contenido = e.target.result;
-            const sep = contenido.split('\n')[0].includes(';') ? ';' : ',';
+            const sep = contenido.includes(';') ? ';' : ',';
             productosDB = contenido.split(/\r?\n/).slice(1).map(l => {
                 const col = l.split(sep);
                 return col.length >= 2 ? { c: col[0].trim(), d: col[1].trim() } : null;
             }).filter(x => x);
-            
             const dl = document.getElementById('listaProductos');
             dl.innerHTML = "";
             productosDB.forEach(p => { let o = document.createElement('option'); o.value = p.d; dl.appendChild(o); });
-            document.getElementById('statusDB').innerText = `✅ ${productosDB.length} productos cargados.`;
+            log("Base de datos cargada. Artículos listos.");
         };
-        reader.readAsText(file, 'ISO-8859-1');
+        reader.readAsText(input.files[0], 'ISO-8859-1');
     }
 
     function vincularCodigo() {
@@ -107,59 +123,90 @@
         document.getElementById('codigoProd').value = p ? p.c : "";
     }
 
-    function iniciarLote() {
-        const p = document.getElementById('inputProducto').value;
-        const peso = document.getElementById('pesoBatch').value;
+    function validarEIniciar() {
+        const peso = parseFloat(document.getElementById('pesoBatch').value);
+        const sel = document.getElementById('mezcladoraId');
+        const capMax = parseFloat(sel.value);
+        const minEje = capMax * 0.66;
         const lote = document.getElementById('lote').value;
-        const cod = document.getElementById('codigoProd').value;
-        if(!p || !peso || !lote) return alert("Complete los datos.");
 
+        if (!peso || !lote) return alert("Error: Debe ingresar peso y lote.");
+        if (peso > capMax) return alert("ALERTA: El peso supera la capacidad máxima de la mezcladora.");
+        if (peso < minEje) return alert("ALERTA: Carga insuficiente para mezcla homogénea (mín: " + Math.round(minEje) + "kg).");
+
+        iniciarProceso();
+    }
+
+    function iniciarProceso() {
         document.getElementById('btnLote').disabled = true;
-        setTimeout(() => {
-            const h = new Date().toLocaleTimeString();
-            historial.push({ p, cod, peso: parseFloat(peso), lote, h });
-            localStorage.setItem('historialForzamix', JSON.stringify(historial)); // GUARDAR
-            
-            qrGenerator.clear();
-            qrGenerator.makeCode(`FORZAMIX\nLote: ${lote}\nProd: ${p}\nPeso: ${peso}kg`);
-            
-            actualizarInterfaz();
-            document.getElementById('btnLote').disabled = false;
-            log("Batch registrado en memoria.");
-        }, 1500);
+        log("Iniciando cronómetro de 3 minutos...");
+        
+        let tiempo = 180;
+        const display = document.getElementById('timerDisplay');
+        const interval = setInterval(() => {
+            let mins = Math.floor(tiempo / 60);
+            let segs = tiempo % 60;
+            display.innerText = `${mins < 10 ? '0' : ''}${mins}:${segs < 10 ? '0' : ''}${segs}`;
+            if (--tiempo < 0) {
+                clearInterval(interval);
+                completarLote();
+            }
+        }, 10); // ACELERADO PARA PRUEBA. Cambiar a 1000 para producción real.
     }
 
-    function actualizarInterfaz() {
-        document.getElementById('txtCant').innerText = `BATCHES HOY: ${historial.length}`;
-        const total = historial.reduce((sum, item) => sum + item.peso, 0);
-        document.getElementById('txtPeso').innerText = `PESO TOTAL: ${total} kg`;
+    function completarLote() {
+        const lote = document.getElementById('lote').value;
+        const prod = document.getElementById('inputProducto').value;
+        const peso = document.getElementById('pesoBatch').value;
+        const obs = document.getElementById('obs').value;
+        const hora = new Date().toLocaleTimeString();
+
+        qrGenerator.clear();
+        qrGenerator.makeCode(`FORZAMIX\nLOTE: ${lote}\nPROD: ${prod}\nPESO: ${peso}kg`);
+        
+        historial.push({ prod, lote, peso: parseFloat(peso), hora, obs });
+        localStorage.setItem('historialForzamix', JSON.stringify(historial));
+        
+        document.getElementById('btnLote').disabled = false;
+        actualizarStats();
+        log("Lote " + lote + " registrado exitosamente.");
     }
 
-    function limpiarMemoria() {
-        if(confirm("¿Seguro? Se borrarán todos los baches de la pantalla para iniciar un nuevo día.")) {
-            localStorage.removeItem('historialForzamix');
-            historial = [];
-            actualizarInterfaz();
-            log("Jornada reiniciada.");
-        }
+    function actualizarStats() {
+        const total = historial.reduce((s, i) => s + i.peso, 0);
+        document.getElementById('txtCant').innerText = `BATCHES REGISTRADOS: ${historial.length}`;
+        document.getElementById('txtPeso').innerText = `TOTAL PRODUCIDO: ${total} kg`;
     }
 
     function log(msg) { document.getElementById('monitor').innerHTML += `> ${msg}<br>`; }
 
     function descargarReporte() {
-        let t = "REPORTE FORZAMIX\n\n";
-        historial.forEach(x => t += `${x.h} - ${x.p} - Lote: ${x.lote} - ${x.peso}kg\n`);
+        if(historial.length === 0) return alert("No hay datos para guardar.");
+        
+        const fecha = new Date().toLocaleDateString().replace(/\//g, '-');
+        const hora = new Date().toLocaleTimeString().replace(/:/g, '');
+        
+        let txt = `FORZAMIX S.R.L. - REPORTE DE PRODUCCION\nFecha: ${new Date().toLocaleDateString()}\n`;
+        txt += `==========================================\n\n`;
+        historial.forEach((l, i) => {
+            txt += `${i+1}. [${l.hora}] LOTE: ${l.lote} | ${l.prod} | PESO: ${l.peso}kg | OBS: ${l.obs}\n`;
+        });
+        txt += `\n------------------------------------------\n`;
+        txt += `TOTAL JORNADA: ${historial.reduce((s,i) => s+i.peso, 0)} kg\n`;
+
+        const blob = new Blob([txt], { type: 'text/plain' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([t], {type:'text/plain'}));
-        a.download = "Reporte.txt"; a.click();
+        a.href = URL.createObjectURL(blob);
+        a.download = `Reporte_Forzamix_${fecha}_${hora}.txt`;
+        a.click();
+        log("Archivo guardado en el disco.");
     }
 
     function enviarEmail() {
-        let c = "Reporte Diario Forzamix:\n\n";
-        historial.forEach(x => c += `- ${x.h}: ${x.p} (Lote: ${x.lote}) ${x.peso}kg\n`);
-        window.location.href = `mailto:calidad@forzamix.com?subject=Reporte%20Produccion&body=${encodeURIComponent(c)}`;
+        let cuerpo = "Resumen Diario Forzamix:\n\n";
+        historial.forEach(x => cuerpo += `- ${x.hora}: ${x.prod} (Lote: ${x.lote}) ${x.peso}kg\n`);
+        window.location.href = `mailto:calidad@forzamix.com?subject=Reporte%20Produccion&body=${encodeURIComponent(cuerpo)}`;
     }
 </script>
 </body>
 </html>
-
