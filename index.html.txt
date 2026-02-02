@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Forzamix - Control Industrial v4.0</title>
+    <style>
+        :root { --azul: #1a252f; --celeste: #3498db; --verde: #27ae60; --rojo: #c0392b; --fondo: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--fondo); display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; width: 850px; padding: 30px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-top: 8px solid var(--azul); }
+        .db-loader { background: #fff9db; border: 2px dashed #f1c40f; padding: 15px; text-align: center; margin-bottom: 20px; border-radius: 8px; }
+        .seccion { background: #ffffff; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dee2e6; }
+        label { display: block; font-weight: 700; margin-bottom: 6px; font-size: 12px; color: var(--azul); }
+        input { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; box-sizing: border-box; }
+        .grid-superior { display: grid; grid-template-columns: 3fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .grid-datos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .paso { flex: 1; padding: 15px; border: 2px solid #e9ecef; border-radius: 10px; text-align: center; font-weight: bold; color: #adb5bd; }
+        .activo { border-color: var(--verde); color: var(--verde); background: #f1fcf4; }
+        .btn { padding: 15px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; }
+        #monitor { background: #212529; color: #33ff33; padding: 15px; border-radius: 6px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 12px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align:center; color:var(--azul)">FORZAMIX S.R.L.</h2>
+    <p style="text-align:center; font-size:12px; color:var(--gris)">CONTROL DE PRODUCCIÓN Y TRAZABILIDAD</p>
+    
+    <div class="db-loader">
+        <label>1. CARGAR ARTICULOS (Selecciona el archivo guardado de Excel):</label>
+        <input type="file" id="fileInput" accept=".csv" onchange="cargarCSV(this)">
+        <p id="statusDB" style="font-size:11px; font-weight:bold; color:#d35400; margin-top:5px;">⚠️ Base de datos pendiente de carga.</p>
+    </div>
+
+    <div class="seccion">
+        <div class="grid-superior">
+            <div>
+                <label>2. BUSCAR PRODUCTO:</label>
+                <input list="listaProductos" id="inputProducto" placeholder="Escribe el nombre del alimento..." onchange="vincularCodigo()">
+                <datalist id="listaProductos"></datalist>
+            </div>
+            <div>
+                <label>Código:</label>
+                <input type="text" id="codigoProd" readonly style="background:#f1f3f5">
+            </div>
+        </div>
+        
+        <div class="grid-datos">
+            <div><label>Orden de Prod. (OP):</label><input type="text" id="orden"></div>
+            <div><label>N° Lote:</label><input type="text" id="lote"></div>
+            <div><label>Peso del Batch (Kg):</label><input type="number" id="pesoBatch"></div>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:20px;">
+        <div id="p1" class="paso">PESADO</div>
+        <div id="p2" class="paso">MEZCLADO (3m)</div>
+        <div id="p3" class="paso">DESPACHO</div>
+    </div>
+
+    <button id="btnLote" class="btn" style="background:var(--celeste)" onclick="iniciarLote()">REGISTRAR BATCH</button>
+    <div id="monitor">Consola del sistema lista...</div>
+
+    <div class="seccion" style="background:#e9ecef">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:10px;">
+            <span id="txtCant">BATCHES: 0</span>
+            <span id="txtPeso">PESO TOTAL: 0 kg</span>
+        </div>
+        <button class="btn" style="background:var(--azul)" onclick="descargarReporte()">⬇ FINALIZAR JORNADA Y DESCARGAR REPORTE</button>
+    </div>
+</div>
+
+<script>
+    let productosDB = [];
+    let historial = [];
+    let pesoTotalDia = 0;
+
+    function cargarCSV(input) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const contenido = e.target.result;
+            // Detectar si el separador es coma o punto y coma
+            const primeraLinea = contenido.split('\n')[0];
+            const separador = primeraLinea.includes(';') ? ';' : ',';
+            
+            const lineas = contenido.split(/\r?\n/);
+            const datalist = document.getElementById('listaProductos');
+            datalist.innerHTML = "";
+            productosDB = [];
+
+            lineas.forEach((linea, index) => {
+                if (index === 0 || linea.trim() === "") return;
+                
+                // Dividir usando el separador detectado
+                const columnas = linea.split(separador);
+                if (columnas.length >= 2) {
+                    const codigo = columnas[0].replace(/"/g, "").trim();
+                    const desc = columnas[1].replace(/"/g, "").trim();
+                    
+                    productosDB.push({ c: codigo, d: desc });
+                    let opt = document.createElement('option');
+                    opt.value = desc;
+                    datalist.appendChild(opt);
+                }
+            });
+            
+            document.getElementById('statusDB').innerText = `✅ ¡Carga Exitosa! ${productosDB.length} artículos listos.`;
+            document.getElementById('statusDB').style.color = "var(--verde)";
+            log(`Base de datos cargada: ${productosDB.length} productos detectados con separador '${separador}'.`);
+        };
+        reader.readAsText(file, 'ISO-8859-1'); // Soporta caracteres con tildes de Excel
+    }
+
+    function vincularCodigo() {
+        const desc = document.getElementById('inputProducto').value;
+        const prod = productosDB.find(p => p.d === desc);
+        document.getElementById('codigoProd').value = prod ? prod.c : "";
+    }
+
+    function log(msg) {
+        const t = new Date().toLocaleTimeString();
+        document.getElementById('monitor').innerHTML += `> [${t}] ${msg}<br>`;
+        document.getElementById('monitor').scrollTop = document.getElementById('monitor').scrollHeight;
+    }
+
+    function iniciarLote() {
+        const prod = document.getElementById('inputProducto').value;
+        const peso = parseFloat(document.getElementById('pesoBatch').value);
+        const lote = document.getElementById('lote').value;
+        const op = document.getElementById('orden').value;
+        const cod = document.getElementById('codigoProd').value;
+
+        if(!prod || !peso || !lote) return alert("Por favor, complete todos los datos del bache.");
+
+        document.getElementById('btnLote').disabled = true;
+        document.getElementById('p1').className = "paso activo";
+        log(`Procesando lote ${lote} de ${prod}...`);
+
+        setTimeout(() => {
+            document.getElementById('p2').className = "paso activo";
+            log("Mezclado iniciado (Ciclo de 3 min)");
+        }, 1500);
+
+        setTimeout(() => {
+            document.getElementById('p3').className = "paso activo";
+            historial.push({ prod, cod, peso, lote, op, hora: new Date().toLocaleTimeString() });
+            pesoTotalDia += peso;
+            
+            document.getElementById('txtCant').innerText = `BATCHES: ${historial.length}`;
+            document.getElementById('txtPeso').innerText = `PESO TOTAL: ${pesoTotalDia} kg`;
+            document.getElementById('btnLote').disabled = false;
+            log("Batch finalizado correctamente.");
+        }, 3000);
+    }
+
+    function descargarReporte() {
+        if(historial.length === 0) return alert("No hay datos para exportar.");
+        let t = `FORZAMIX S.R.L. - REPORTE DE CIERRE DIARIO\nFecha: ${new Date().toLocaleDateString()}\n`;
+        t += `Total Jornada: ${pesoTotalDia} kg | Total Batches: ${historial.length}\n`;
+        t += `============================================================\n\n`;
+        historial.forEach(h => t += `[${h.hora}] OP: ${h.op} | Lote: ${h.lote} | Cod: ${h.cod} | ${h.prod} | Peso: ${h.peso}kg\n`);
+        
+        const blob = new Blob([t], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Cierre_Forzamix_${new Date().toLocaleDateString().replace(/\//g,'-')}.txt`;
+        a.click();
+    }
+</script>
+</body>
+</html>
